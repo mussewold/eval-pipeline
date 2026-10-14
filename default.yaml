@@ -1,0 +1,100 @@
+version: 3 # Configuration schema version.
+normalization:
+  target_width: 1600 # Resize width used for consistent measurements.
+  min_width: 320 # Reject images narrower than this.
+  min_height: 160 # Reject images shorter than this.
+  blur_kernel: 5 # Odd-sized Gaussian blur kernel.
+  clahe_clip_limit: 2.0 # Local contrast enhancement strength.
+localization:
+  min_area_ratio: 0.03 # Smallest cheque candidate relative to the source image.
+  max_area_ratio: 0.98 # Exclude the scanned page boundary itself.
+  min_aspect_ratio: 1.50 # Shortest accepted long-side/short-side cheque ratio.
+  max_aspect_ratio: 3.50 # Longest accepted long-side/short-side cheque ratio.
+  max_candidates: 5 # OCR/layout scoring is limited to the best geometric candidates.
+  minimum_score: 0.42 # Minimum evidence required to accept a localized cheque.
+  ambiguity_margin: 0.03 # Similar non-overlapping candidates are ambiguous.
+  duplicate_iou: 0.65 # Overlapping proposals above this value are the same cheque.
+  min_full_width_boundary_support: 0.18 # Long edge support for a cheque spanning the photo width.
+  paper_max_saturation: 50 # Upper HSV saturation used to distinguish cheque paper from its surroundings.
+  paper_min_brightness: 100 # Lower HSV brightness used for the paper-support proposal.
+  paper_min_axis_support: 0.25 # Required paper fraction along a candidate row or column.
+orientation:
+  minimum_ocr_margin: 0.06 # Required score gap before OCR controls 0/180 orientation.
+  anchor_words: [PAY, DATE, RUPEES, BEARER, SIGNATURE, CHEQUE, BANK, AED, ONLY]
+text_detection:
+  enabled: true
+  min_ocr_confidence: 0.55 # Minimum combined OCR/phrase score for A/C Payee.
+  automatic_accept_threshold: 0.75 # Lower positive text evidence requires review.
+  ocr_retry_padding_pixels: 60 # White border used when retrying text clipped by the ROI edge.
+  fuzzy_account_max_edits: 1 # Account marker tolerance, e.g. A/C, AC, A/P, or AVC.
+  fuzzy_payee_max_edits: 2 # Independent tolerance for a degraded PAYEE token.
+  only_suffix_max_edits: 2 # Recognize OCR variants such as DNILY or 0NLY as ONLY.
+  ac_payee_max_edits: 1
+  ac_payee_only_max_edits: 2
+  account_payee_max_edits: 2
+region:
+  x_start: 0.00 # ROI left edge as image-width ratio.
+  y_start: 0.00 # ROI top edge as image-height ratio.
+  x_end: 0.80 # ROI stops at 80% of the normalized image width.
+  y_end: 0.40 # ROI stops at 40% of the normalized image height.
+  dynamic:
+    enabled: false # Keep the ROI fixed at x_end/y_end; do not infer content anchors.
+    horizontal_kernel_ratio: 0.035 # Morphology kernel used to isolate horizontal rules.
+    min_horizontal_length_ratio: 0.08 # Shorter marks are not treated as field geometry.
+    max_horizontal_thickness_ratio: 0.025 # Reject thick graphics and filled blocks.
+    payee_min_y_ratio: 0.12 # Plausible vertical band for the payee field.
+    payee_max_y_ratio: 0.62
+    date_min_x_ratio: 0.55 # Date field geometry must begin in the right side.
+    x_margin_ratio: 0.01 # Gap left before the inferred payee field.
+    y_margin_ratio: 0.01 # Gap above the inferred date field.
+    min_x_end_ratio: 0.30 # Ignore early logo/decorative rules that could crop the crossing.
+    max_x_end_ratio: 0.65
+    min_y_end_ratio: 0.18 # Ignore implausible date anchors outside these bounds.
+    max_y_end_ratio: 0.65
+detection:
+  geometry_reference_width_ratio: 0.50 # Stable scoring scale, independent of ROI width.
+  geometry_reference_height_ratio: 0.40 # Stable scoring scale, independent of ROI height.
+  canny_low: 80 # Weak-edge threshold.
+  canny_high: 200 # Strong-edge threshold.
+  hough_threshold: 70 # Minimum votes required for a line.
+  min_line_length_ratio: 0.08 # Keeps short handwritten crossing strokes, including image 24.
+  max_line_gap_ratio: 0.05 # Maximum joined gap relative to ROI diagonal.
+  validation:
+    max_angle_difference_degrees: 13.0 # Maximum difference between paired lines.
+    same_stroke_max_angle_difference_degrees: 3.0 # Angle tolerance when merging fragments.
+    same_stroke_max_separation_ratio: 0.004 # Maximum distance for the same stroke.
+    same_stroke_max_gap_ratio: 0.03 # Maximum along-line gap when merging fragments.
+    min_pair_separation_ratio: 0.008 # Minimum distance between crossing lines.
+    max_pair_separation_ratio: 0.22 # Maximum distance between crossing lines.
+    pair_gap_sample_width_ratio: 0.30 # Width of the strip sampled between a pair.
+    pair_gap_dark_pixel_threshold: 140 # Pixels below this intensity count as ink.
+    max_pair_gap_dark_ratio: 0.80 # Reject paired edges enclosing mostly solid ink.
+    boundary_artifact_margin_ratio: 0.05 # Top strip where crop-edge pairs receive extra validation.
+    boundary_artifact_max_separation_ratio: 0.02 # Close parallel edges near the crop top may be one boundary.
+    boundary_artifact_max_length_ratio: 0.15 # Longer top-edge pairs remain eligible as crossing strokes.
+    min_line_edge_support_ratio: 0.85 # Reject virtual lines bridged through sparse text edges.
+    min_overlap_ratio: 0.30 # Minimum alignment overlap for a pair.
+    diagonal_min_angle: 20.0 # Shallowest accepted diagonal angle.
+    diagonal_max_angle: 70.0 # Steepest accepted diagonal angle.
+    max_segment_center_x_ratio: 0.72 # Furthest allowed segment center horizontally.
+    max_segment_center_y_ratio: 0.80 # Allow crossings close to the fixed 40% ROI boundary.
+  scoring:
+    weights:
+      angle: 0.30 # Parallelism contribution.
+      length: 0.25 # Line-length contribution.
+      overlap: 0.30 # Alignment-overlap contribution.
+      separation: 0.15 # Line-spacing contribution.
+    angle_zero_score_degrees: 100.0 # Difference producing zero angle score.
+    full_length_ratio: 0.12 # Length ratio producing full length score.
+    ideal_separation_ratio: 0.05 # Spacing ratio producing full separation score.
+    separation_zero_score_deviation_ratio: 0.06 # Deviation producing zero spacing score.
+  decision:
+    positive_threshold: 0.60 # Minimum score for Y.
+    automatic_accept_threshold: 0.75 # Minimum Y score not requiring review.
+    competing_pair_margin: 0.03 # Score gap below which pairs compete.
+    same_candidate_center_distance_ratio: 0.12 # Nearby Hough pairs are one crossing hypothesis.
+    same_candidate_max_angle_difference_degrees: 15.0 # Direction tolerance for one hypothesis.
+quality:
+  blur_variance_min: 55.0 # Minimum sharpness measure.
+  contrast_std_min: 22.0 # Minimum contrast measure.
+  dark_pixel_min: 0.004 # Minimum foreground-pixel ratio.
