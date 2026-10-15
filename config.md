@@ -34,7 +34,7 @@ Important constraints:
 - Avoid splitting code into tiny modules without a clear responsibility.
 
 Target structure:
-
+```
 crossing_finder/
 ├── pyproject.toml
 ├── README.md
@@ -131,7 +131,7 @@ crossing_finder/
     ├── architecture.md
     ├── configuration.md
     └── evaluation.md
-
+```
 Treat this as a target architecture, not permission to create empty or artificial modules. Only create a module when current code provides a coherent responsibility for it.
 
 Responsibilities:
